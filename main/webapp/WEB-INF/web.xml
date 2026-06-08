@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	
+	<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="WebApp_ID" xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd" version="5.0">
+	<!-- 
+	    ══════════════════════════════════════════════════════════════════════
+	    TOMCAT 10.1+ FILE COUNT / PARAMETER COUNT FIX
+	    ══════════════════════════════════════════════════════════════════════
+	
+	    ERROR:  FileCountLimitExceededException: attachment
+	    CAUSE:  Tomcat 10.1 introduced a default limit of 50 total parts
+	            (text fields + file inputs combined) for multipart requests.
+	            The DeliveryRegisterServlet form has ~48 text fields + 12 file
+	            inputs = ~60 parts, blowing past the limit before even the
+	            first getParameter() call fires.
+	
+	    TWO FIXES ARE REQUIRED — both must be applied:
+	
+	    FIX 1 — @MultipartConfig in DeliveryRegisterServlet.java
+	    ─────────────────────────────────────────────────────────
+	    Add  maxFileCount = 20  to the annotation.
+	    This raises the file-part limit for that specific servlet.
+	    (Already applied in the DeliveryRegisterServlet.java output file.)
+	
+	    FIX 2 — Tomcat Connector  (conf/server.xml  OR  conf/context.xml)
+	    ──────────────────────────────────────────────────────────────────
+	    The Connector has a separate  maxParameterCount  attribute (default
+	    10000 in older Tomcat, but effectively capped by the multipart
+	    FileCountLimit in 10.1).
+	
+	    Open  <TOMCAT_HOME>/conf/server.xml  and find the HTTP Connector:
+	
+	        <Connector port="8080" protocol="HTTP/1.1"
+	                   connectionTimeout="20000"
+	                   redirectPort="8443"
+	                   maxParameterCount="200" />   ← ADD THIS LINE
+	
+	    200 is safe for this form (60 real params + headroom).
+	    Do NOT set it to -1 (unlimited) — that disables a DoS protection.
+	
+	    Alternatively, if you cannot edit server.xml (shared hosting),
+	    add this to  <TOMCAT_HOME>/conf/context.xml  inside <Context>:
+	
+	        <Context>
+	            <JarScanner .../>
+	        </Context>
+	
+	    and set the system property at Tomcat startup:
+	        -Dorg.apache.tomcat.util.http.Parameters.MAX_COUNT=200
+	
+	    ══════════════════════════════════════════════════════════════════════
+	     -->
+	<!--  ── Razorpay ────────────────────────────────────────────────────────  -->
+	<context-param>
+	<param-name>razorpay.key_id</param-name>
+	<param-value>${RAZORPAY_KEY_ID}</param-value>
+	</context-param>
+	<context-param>
+	<param-name>razorpay.key_secret</param-name>
+	<param-value>${RAZORPAY_KEY_SECRET}</param-value>
+	</context-param>
+	<!--  ── Mail ────────────────────────────────────────────────────────────  -->
+	<context-param>
+	<param-name>mail.smtp.host</param-name>
+	<param-value>smtp.gmail.com</param-value>
+	</context-param>
+	<context-param>
+	<param-name>mail.smtp.port</param-name>
+	<param-value>587</param-value>
+	</context-param>
+	<context-param>
+	<param-name>mail.smtp.user</param-name>
+	<param-value>nandithamadhav23@gmail.com</param-value>
+	</context-param>
+	<context-param>
+	<param-name>mail.smtp.password</param-name>
+	<param-value>${MAIL_SMTP_PASSWORD}</param-value>
+	</context-param>
+	<!--  ── Twilio ───────────────────────────────────────────────────────────  -->
+	<context-param>
+	<param-name>twilio_sid</param-name>
+	<param-value>${TWILIO_ACCOUNT_SID}</param-value>
+	</context-param>
+	<context-param>
+	<param-name>twilio_token</param-name>
+	<param-value>${TWILIO_AUTH_TOKEN}</param-value>
+	</context-param>
+	<!--  ── Persistent Product Image Directory ─────────────────────────────  -->
+	<!-- 
+	        Images stored here survive redeployments and WAR rebuilds.
+	        Create this directory once:  mkdir -p /opt/sibs-store/product-images
+	        Then set ownership to tomcat user:  chown -R tomcat:tomcat /opt/sibs-store/
+	     -->
+	<context-param>
+	<param-name>productImageDir</param-name>
+	<param-value>C:/sibs-store/product-images</param-value>
+	</context-param>
+	<!--  ── JSP page mappings ────────────────────────────────────────────────  -->
+	<servlet>
+	<servlet-name>HomePage</servlet-name>
+	<jsp-file>/index.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>HomePage</servlet-name>
+	<url-pattern>/homepage</url-pattern>
+	</servlet-mapping>
+	<servlet>
+	<servlet-name>AdminDashboard</servlet-name>
+	<jsp-file>/dashboard.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>AdminDashboard</servlet-name>
+	<url-pattern>/adminDashboard</url-pattern>
+	</servlet-mapping>
+	<servlet>
+	<servlet-name>UserDashboard</servlet-name>
+	<jsp-file>/userDashboard.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>UserDashboard</servlet-name>
+	<url-pattern>/userDashboard</url-pattern>
+	</servlet-mapping>
+	<servlet>
+	<servlet-name>AddUser</servlet-name>
+	<jsp-file>/addUser.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>AddUser</servlet-name>
+	<url-pattern>/addUser</url-pattern>
+	</servlet-mapping>
+	<servlet>
+	<servlet-name>Product</servlet-name>
+	<jsp-file>/productDashboard.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>Product</servlet-name>
+	<url-pattern>/ProductDashboard</url-pattern>
+	</servlet-mapping>
+	<servlet>
+	<servlet-name>staff</servlet-name>
+	<jsp-file>/staffDashboard.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>staff</servlet-name>
+	<url-pattern>/StaffDashboard</url-pattern>
+	</servlet-mapping>
+	<servlet>
+	<servlet-name>Customer</servlet-name>
+	<jsp-file>/customerDashboard.jsp</jsp-file>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>Customer</servlet-name>
+	<url-pattern>/CustomerDashboard</url-pattern>
+	</servlet-mapping>
+	<!--  ── Delivery Agent Registration Servlet ─────────────────────────────  -->
+	<servlet>
+	<servlet-name>DeliveryRegisterServlet</servlet-name>
+	<servlet-class>com.servlet.DeliveryRegisterServlet</servlet-class>
+	<init-param>
+	<param-name>uploadRootDir</param-name>
+	<param-value>C:/delivery_uploads/KYC_docs</param-value>
+	</init-param>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>DeliveryRegisterServlet</servlet-name>
+	<url-pattern>/DeliveryRegisterServlet</url-pattern>
+	</servlet-mapping>
+	<!--  ══════════════════════════════════════════════════════════════════════
+	     ADD THESE BLOCKS TO YOUR web.xml  (inside the <web-app> root element)
+	     ══════════════════════════════════════════════════════════════════════
+	
+	     AdminDeliveryReviewServlet handles four URL patterns.
+	     The servlet has NO @WebServlet annotation (comment in the class explains why).
+	     All mappings must be declared here.
+	     ══════════════════════════════════════════════════════════════════════  -->
+	<servlet>
+	<servlet-name>AdminDeliveryReviewServlet</servlet-name>
+	<servlet-class>com.servlet.AdminDeliveryReviewServlet</servlet-class>
+	<!--  Must match the path used by DeliveryRegisterServlet so both servlets
+	         read/write files from the same root directory.  -->
+	<init-param>
+	<param-name>uploadRootDir</param-name>
+	<param-value>C:/delivery_uploads/KYC_docs</param-value>
+	</init-param>
+	<load-on-startup>2</load-on-startup>
+	</servlet>
+	<servlet>
+	<servlet-name>LeaveServlet</servlet-name>
+	<servlet-class>com.servlet.LeaveServlet</servlet-class>
+	<init-param>
+	<param-name>uploadRootDirLeave</param-name>
+	<param-value>C:/staff_uploads/leave</param-value>
+	<!--  ← Windows path  -->
+	</init-param>
+	<load-on-startup>2</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>LeaveServlet</servlet-name>
+	<url-pattern>/LeaveServlet</url-pattern>
+	</servlet-mapping>
+	<!--  ── 2. LeaveDocServlet — securely streams docs to admin browser ───  -->
+	<!-- 
+	  This servlet MUST use the EXACT SAME uploadRootDirLeave value as
+	  LeaveServlet above. If they differ, admins will get 404s when
+	  trying to view documents.
+	 -->
+	<servlet>
+	<servlet-name>LeaveDocServlet</servlet-name>
+	<servlet-class>com.servlet.LeaveDocServlet</servlet-class>
+	<init-param>
+	<param-name>uploadRootDirLeave</param-name>
+	<param-value>C:/staff_uploads/leave</param-value>
+	<!--  ← must match above  -->
+	</init-param>
+	<load-on-startup>3</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>LeaveDocServlet</servlet-name>
+	<url-pattern>/LeaveDocServlet</url-pattern>
+	</servlet-mapping>
+	<!--  1. POST: approve / reject a KYC application  -->
+	<servlet-mapping>
+	<servlet-name>AdminDeliveryReviewServlet</servlet-name>
+	<url-pattern>/AdminDeliveryReviewServlet</url-pattern>
+	</servlet-mapping>
+	<!--  2. GET: list fragment (loaded AJAX into dashboard #mainContent)  -->
+	<servlet-mapping>
+	<servlet-name>AdminDeliveryReviewServlet</servlet-name>
+	<url-pattern>/DeliveryAgentReview</url-pattern>
+	</servlet-mapping>
+	<!--  3. GET: detail fragment  -->
+	<servlet-mapping>
+	<servlet-name>AdminDeliveryReviewServlet</servlet-name>
+	<url-pattern>/DeliveryAgentDetail</url-pattern>
+	</servlet-mapping>
+	<!--  4. GET: secure document/image serving from uploadRootDir  -->
+	<servlet-mapping>
+	<servlet-name>AdminDeliveryReviewServlet</servlet-name>
+	<url-pattern>/AdminDocServlet</url-pattern>
+	</servlet-mapping>
+	<!--  ── Session ─────────────────────────────────────────────────────────  -->
+	<session-config>
+	<session-timeout>36000</session-timeout>
+	</session-config>
+	<!--  ── Error pages ─────────────────────────────────────────────────────  -->
+	<error-page>
+	<error-code>400</error-code>
+	<location>/error404.jsp</location>
+	</error-page>
+	<error-page>
+	<error-code>403</error-code>
+	<location>/error404.jsp</location>
+	</error-page>
+	<error-page>
+	<error-code>404</error-code>
+	<location>/error404.jsp</location>
+	</error-page>
+	<error-page>
+	<error-code>405</error-code>
+	<location>/error404.jsp</location>
+	</error-page>
+	<error-page>
+	<error-code>500</error-code>
+	<location>/error500.jsp</location>
+	</error-page>
+	<error-page>
+	<error-code>503</error-code>
+	<location>/error500.jsp</location>
+	</error-page>
+	<error-page>
+	<exception-type>java.lang.Exception</exception-type>
+	<location>/error500.jsp</location>
+	</error-page>
+	<context-param>
+	<param-name>anthropic.api_key</param-name>
+	<param-value>${ANTHROPIC_API_KEY}</param-value>
+	</context-param>
+	<!--  ── ProductImageServlet — persistent image serving ───────────────────  -->
+	<servlet>
+	<servlet-name>ProductImageServlet</servlet-name>
+	<servlet-class>com.servlet.ProductImageServlet</servlet-class>
+	<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+	<servlet-name>ProductImageServlet</servlet-name>
+	<url-pattern>/product-image/*</url-pattern>
+	</servlet-mapping>
+	</web-app>
